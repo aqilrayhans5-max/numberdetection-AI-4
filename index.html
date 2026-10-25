@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="DigitLab recognizes handwritten three-digit numbers drawn on the page.">
+  <title>DigitLab | Three-digit recognition</title>
+  <style>
+    :root { color-scheme: light; --ink:#17233d; --muted:#64718a; --line:#dfe5ef; --paper:#ffffff; --bg:#f3f6fb; --blue:#3757d5; --blue-dark:#2844b4; --teal:#167f78; --warn:#a45c05; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:linear-gradient(180deg,#eef3ff 0,#f7f9fc 280px,var(--bg) 100%); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; min-height:100vh; }
+    .wrap { width:min(1080px,calc(100% - 32px)); margin:0 auto; padding:28px 0 42px; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:4px 0 30px; }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:-.03em; font-size:22px; }
+    .mark { display:grid; place-items:center; width:42px; height:42px; border-radius:13px; color:#fff; background:linear-gradient(145deg,#4d70ee,#2e45b6); box-shadow:0 7px 16px #3757d538; font-size:19px; }
+    .tag { border:1px solid #d7def2; border-radius:999px; color:#415681; background:#fff9; padding:8px 12px; font-size:12px; font-weight:700; white-space:nowrap; }
+    .hero { max-width:720px; margin:0 0 24px; }
+    .eyebrow { color:var(--blue); text-transform:uppercase; letter-spacing:.14em; font-size:11px; font-weight:800; margin-bottom:10px; }
+    h1 { margin:0; font-size:clamp(30px,5vw,48px); line-height:1.05; letter-spacing:-.045em; }
+    .hero p { max-width:680px; margin:13px 0 0; color:var(--muted); font-size:15px; line-height:1.7; }
+    .layout { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,.8fr); gap:20px; align-items:start; }
+    .card { background:var(--paper); border:1px solid #e1e7f0; border-radius:20px; box-shadow:0 15px 42px #182b4a0b; overflow:hidden; }
+    .card-head { padding:21px 22px 15px; display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    h2 { font-size:16px; letter-spacing:-.02em; margin:0; }
+    .subtitle { color:var(--muted); margin:6px 0 0; font-size:12px; line-height:1.5; }
+    .status { display:inline-flex; gap:7px; align-items:center; border-radius:999px; background:#eef3fb; color:#53627d; padding:7px 9px; font-size:11px; font-weight:750; white-space:nowrap; }
+    .dot { display:inline-block; width:7px; height:7px; border-radius:50%; background:#a0a9b8; }
+    .status.ok { background:#e8f7f3; color:#176d61; } .status.ok .dot { background:#25a18e; }
+    .status.bad { background:#fff1e8; color:#a04a20; } .status.bad .dot { background:#d86d37; }
+    .canvas-shell { margin:0 20px; border:1px solid #dfe5ef; border-radius:15px; overflow:hidden; background:white; }
+    canvas { display:block; width:100%; aspect-ratio:3 / 1; height:auto; background:#fff; touch-action:none; cursor:crosshair; }
+    .canvas-note { padding:0 22px; color:#7a879b; font-size:11px; margin:10px 0 0; }
+    .controls { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:17px 20px 20px; flex-wrap:wrap; }
+    .brush { display:flex; gap:10px; align-items:center; color:#5c6880; font-size:12px; font-weight:700; }
+    input[type=range] { accent-color:var(--blue); width:110px; }
+    .actions { display:flex; gap:9px; flex-wrap:wrap; }
+    button { font:inherit; border:0; border-radius:11px; padding:11px 15px; cursor:pointer; font-weight:750; font-size:12px; transition:transform .12s ease,background .12s ease; }
+    button:active { transform:translateY(1px); } button:disabled { opacity:.55; cursor:wait; }
+    .secondary { color:#465571; background:#eff2f8; } .secondary:hover { background:#e6ebf5; }
+    .primary { color:#fff; background:var(--blue); box-shadow:0 6px 13px #3757d529; } .primary:hover { background:var(--blue-dark); }
+    .result-card { padding:22px; }
+    .result-title { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+    .result-title h2 { font-size:16px; }
+    .tiny-pill { border-radius:7px; background:#edf2ff; color:#3c55b3; font-size:10px; font-weight:800; padding:5px 7px; }
+    .result-box { display:grid; place-items:center; min-height:152px; margin:18px 0 15px; border-radius:15px; border:1px dashed #ccd5e6; background:linear-gradient(135deg,#f9fbff,#f1f5ff); }
+    .result-value { color:#2545bc; font-size:clamp(42px,7vw,60px); letter-spacing:.17em; font-variant-numeric:tabular-nums; font-weight:850; padding-left:.17em; line-height:1; }
+    .placeholder { color:#8490a5; font-size:13px; font-weight:650; letter-spacing:0; }
+    .message { min-height:36px; color:var(--muted); font-size:12px; line-height:1.55; }
+    .message.error { color:#a54c27; }
+    .tip { background:#f7f9fd; border:1px solid #e6ebf3; border-radius:12px; padding:13px 14px; margin-top:17px; }
+    .tip strong { display:block; font-size:11px; margin-bottom:5px; }
+    .tip p { margin:0; color:var(--muted); font-size:11px; line-height:1.6; }
+    .steps { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:20px; }
+    .step { background:#ffffffb5; border:1px solid #e1e7f0; border-radius:14px; padding:15px; }
+    .num { width:24px; height:24px; display:grid; place-items:center; border-radius:8px; background:#e9eeff; color:#3450c0; font-weight:800; font-size:11px; margin-bottom:9px; }
+    .step strong { font-size:12px; display:block; margin-bottom:5px; }
+    .step p { margin:0; font-size:11px; line-height:1.55; color:var(--muted); }
+    footer { text-align:center; color:#8994a7; font-size:11px; margin-top:25px; line-height:1.5; }
+    @media (max-width:780px) { .layout { grid-template-columns:1fr; } .result-card { padding:19px; } .result-box { min-height:125px; } }
+    @media (max-width:520px) { .wrap { width:calc(100% - 20px); padding-top:18px; } header { margin-bottom:24px; } .tag { display:none; } .card-head { padding:17px 16px 13px; flex-direction:column; } .canvas-shell { margin:0 12px; } .canvas-note { padding:0 15px; } .controls { padding:14px 13px 16px; } .actions { width:100%; } .actions button { flex:1; } .steps { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div class="brand"><div class="mark">D</div><span>DigitLab</span></div>
+      <div class="tag">HANDWRITTEN DIGIT AI · 3 DIGITS</div>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">Three-digit number recognition</div>
+      <h1>Draw it. <span style="color:var(--blue)">Recognize it.</span></h1>
+      <p>Write a three-digit number in the drawing area and let DigitLab predict it from left to right. No photo uploads—just draw directly on the page.</p>
+    </section>
+
+    <section class="layout" aria-label="Digit recognition application">
+      <div class="card">
+        <div class="card-head">
+          <div><h2>Drawing pad</h2><p class="subtitle">Write exactly three digits, with a small gap between each one.</p></div>
+          <div id="apiStatus" class="status"><span class="dot"></span><span>Checking model…</span></div>
+        </div>
+        <div class="canvas-shell"><canvas id="drawCanvas" width="1200" height="400" aria-label="Draw a three-digit number here"></canvas></div>
+        <p class="canvas-note">Tip: keep digits upright and comfortably spaced. Try writing 123 first.</p>
+        <div class="controls">
+          <label class="brush" for="brushSize">Pen size <input id="brushSize" type="range" min="7" max="21" value="13"><span id="brushValue">13</span></label>
+          <div class="actions"><button id="clearBtn" class="secondary" type="button">Clear pad</button><button id="recognizeBtn" class="primary" type="button">Recognize number →</button></div>
+        </div>
+      </div>
+
+      <aside class="card result-card">
+        <div class="result-title"><h2>Prediction</h2><span class="tiny-pill">3-DIGIT MODE</span></div>
+        <div class="result-box" aria-live="polite"><div id="resultValue" class="result-value placeholder">---</div></div>
+        <div id="message" class="message">Draw three digits, then press Recognize number.</div>
+        <div class="tip"><strong>How to get a better result</strong><p>Use dark, continuous strokes. Leave a little space between digits without letting them touch. The model was trained on MNIST-style examples, so your handwriting may differ from the training data.</p></div>
+      </aside>
+    </section>
+
+    <section class="steps" aria-label="How to use DigitLab">
+      <div class="step"><div class="num">1</div><strong>Draw three digits</strong><p>Write from left to right, within the white drawing pad.</p></div>
+      <div class="step"><div class="num">2</div><strong>Recognize</strong><p>DigitLab sends the drawing to its Python model and decodes a three-digit sequence.</p></div>
+      <div class="step"><div class="num">3</div><strong>Check the result</strong><p>If a digit is wrong, try a clearer drawing. Accuracy depends on the trained model.</p></div>
+    </section>
+
+    <footer>DigitLab · Browser canvas + Flask/PyTorch model · For best results, train the model before deploying.</footer>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('drawCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: false });
+    const brushSize = document.getElementById('brushSize');
+    const brushValue = document.getElementById('brushValue');
+    const clearBtn = document.getElementById('clearBtn');
+    const recognizeBtn = document.getElementById('recognizeBtn');
+    const resultValue = document.getElementById('resultValue');
+    const message = document.getElementById('message');
+    const apiStatus = document.getElementById('apiStatus');
+    let isDrawing = false;
+    let hasInk = false;
+    let logicalWidth = 0;
+    let logicalHeight = 0;
+    let lastPoint = null;
+
+    function setupCanvas(clear = true) {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const dpr = window.devicePixelRatio || 1;
+      logicalWidth = rect.width;
+      logicalHeight = rect.height;
+      canvas.width = Math.round(logicalWidth * dpr);
+      canvas.height = Math.round(logicalHeight * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#101827';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+      if (clear) hasInk = false;
+    }
+
+    function getPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    }
+
+    function startDrawing(event) {
+      event.preventDefault();
+      canvas.setPointerCapture?.(event.pointerId);
+      isDrawing = true;
+      lastPoint = getPoint(event);
+      ctx.beginPath();
+      ctx.arc(lastPoint.x, lastPoint.y, Number(brushSize.value) / 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#101827';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(lastPoint.x, lastPoint.y);
+      ctx.lineWidth = Number(brushSize.value);
+      hasInk = true;
+    }
+
+    function continueDrawing(event) {
+      if (!isDrawing) return;
+      event.preventDefault();
+      const point = getPoint(event);
+      ctx.lineWidth = Number(brushSize.value);
+      ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+      lastPoint = point;
+    }
+
+    function stopDrawing() {
+      if (!isDrawing) return;
+      isDrawing = false;
+      lastPoint = null;
+      ctx.closePath();
+    }
+
+    function clearDrawing() {
+      if (!logicalWidth || !logicalHeight) setupCanvas(false);
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, logicalWidth, logicalHeight);
+      hasInk = false;
+      resultValue.textContent = '---';
+      resultValue.classList.add('placeholder');
+      message.textContent = 'Pad cleared. Draw three digits, then recognize them.';
+      message.classList.remove('error');
+    }
+
+    brushSize.addEventListener('input', () => { brushValue.textContent = brushSize.value; });
+    canvas.addEventListener('pointerdown', startDrawing);
+    canvas.addEventListener('pointermove', continueDrawing);
+    canvas.addEventListener('pointerup', stopDrawing);
+    canvas.addEventListener('pointercancel', stopDrawing);
+    canvas.addEventListener('pointerleave', stopDrawing);
+    clearBtn.addEventListener('click', clearDrawing);
+
+    recognizeBtn.addEventListener('click', async () => {
+      if (!hasInk) {
+        message.textContent = 'Draw all three digits in the pad first.';
+        message.classList.add('error');
+        return;
+      }
+      recognizeBtn.disabled = true;
+      clearBtn.disabled = true;
+      recognizeBtn.textContent = 'Recognizing…';
+      message.textContent = 'Reading the drawing…';
+      message.classList.remove('error');
+      try {
+        const response = await fetch('/api/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image: canvas.toDataURL('image/png') })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+        const prediction = String(data.sequence || data.prediction || '');
+        resultValue.textContent = prediction || '???';
+        resultValue.classList.toggle('placeholder', !prediction);
+        if (prediction.length === 3) {
+          message.textContent = `Prediction complete: ${prediction}. If a digit is incorrect, try clearer spacing and check the model's validation accuracy.`;
+        } else {
+          message.textContent = `The model returned ${prediction.length} digit(s). Retrain and verify the model attached to the deployed backend.`;
+          message.classList.add('error');
+        }
+      } catch (error) {
+        resultValue.textContent = '---';
+        resultValue.classList.add('placeholder');
+        message.textContent = error.message || 'Recognition failed. Check that the model is trained and the server is running.';
+        message.classList.add('error');
+      } finally {
+        recognizeBtn.disabled = false;
+        clearBtn.disabled = false;
+        recognizeBtn.textContent = 'Recognize number →';
+      }
+    });
+
+    async function checkModelStatus() {
+      try {
+        const response = await fetch('/api/health', { cache: 'no-store' });
+        const data = await response.json();
+        if (response.ok && data.ok) {
+          apiStatus.className = 'status ok';
+          apiStatus.innerHTML = '<span class="dot"></span><span>Model ready</span>';
+        } else {
+          apiStatus.className = 'status bad';
+          apiStatus.innerHTML = '<span class="dot"></span><span>Model not trained</span>';
+          message.textContent = data.error || 'The trained model file is missing. Run train_3digit.py first.';
+          message.classList.add('error');
+        }
+      } catch (_) {
+        apiStatus.className = 'status bad';
+        apiStatus.innerHTML = '<span class="dot"></span><span>Server unavailable</span>';
+      }
+    }
+
+    window.addEventListener('load', () => {
+      setupCanvas(true);
+      checkModelStatus();
+    });
+  </script>
+</body>
+</html>

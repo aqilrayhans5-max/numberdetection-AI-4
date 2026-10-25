@@ -1,0 +1,6 @@
+Flask>=3.0,<4.0
+gunicorn>=22.0,<24.0
+numpy>=1.26,<3.0
+Pillow>=10.0,<13.0
+torch>=2.4,<3.0
+torchvision>=0.19,<1.0
